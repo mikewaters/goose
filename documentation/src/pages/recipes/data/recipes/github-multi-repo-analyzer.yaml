@@ -1,0 +1,73 @@
+version: 1.0.0
+title: GitHub Multi-Repo Analyzer
+description: Clone multiple GitHub repositories with gh and analyze each one using provided analysis hints.
+author:
+  contact: copilot
+
+instructions: |
+  You are a repository analysis orchestrator.
+  Your job is to clone every GitHub repository provided by the user, then analyze each cloned repository using the supplied hints.
+
+  Core requirements:
+  1. Always use `gh repo clone` to clone repositories.
+  2. Clone every repository into `{{ workspace_dir }}`.
+  3. Analyze each repository with all hints from `{{ analysis_hints }}`.
+  4. Produce a clear per-repository report and a short cross-repository summary.
+
+parameters:
+  - key: github_urls
+    input_type: string
+    requirement: required
+    description: "GitHub repository URLs or owner/repo values (comma or newline separated)"
+  - key: analysis_hints
+    input_type: string
+    requirement: required
+    description: "Hints or focus areas for analysis (comma or newline separated)"
+  - key: workspace_dir
+    input_type: string
+    requirement: optional
+    default: "./tmp/repo-analysis"
+    description: "Directory where repositories are cloned and analyzed"
+
+activities:
+  - Parse repository list and hints
+  - Clone repositories with gh
+  - Analyze each repository using hints
+  - Produce combined summary
+
+extensions:
+  - type: builtin
+    name: developer
+    display_name: Developer
+    timeout: 600
+    bundled: true
+
+prompt: |
+  Analyze the repositories listed in `{{ github_urls }}` using the hints in `{{ analysis_hints }}`.
+
+  Execute this workflow:
+
+  1. Parse inputs
+     - Treat `{{ github_urls }}` as a list split by commas or newlines.
+     - Treat `{{ analysis_hints }}` as a list split by commas or newlines.
+     - Trim whitespace and ignore empty entries.
+
+  2. Prepare workspace
+     - Ensure `{{ workspace_dir }}` exists.
+     - Use absolute paths for all repository operations.
+
+  3. Clone repositories (required)
+     - For each repository entry, normalize into `owner/repo` when possible.
+     - Run `gh repo clone <owner/repo> <target_path>` for each repository.
+     - If a clone fails, continue with the remaining repositories and capture the error.
+
+  4. Analyze each cloned repository
+     - For each successfully cloned repository:
+       - Inspect repository structure and key files.
+       - Apply every hint from the hint list as an analysis lens.
+       - Provide concrete findings with file references where useful.
+
+  5. Return results
+     - Include a "Clone Results" section listing success/failure per repository.
+     - Include one analysis section per successful repository.
+     - Include a final "Cross-Repository Summary" section synthesizing patterns across repositories.
